@@ -7,7 +7,7 @@
 import type { Recipe, UserGoals, ChatMessage } from './types'
 
 const BASE_URL = 'https://openrouter.ai/api/v1'
-const MODEL = 'google/gemini-2.0-flash-001'
+const MODEL = 'meta-llama/llama-3.3-70b-instruct'
 
 function getKey(): string {
   const key = import.meta.env.VITE_OPENROUTER_API_KEY as string

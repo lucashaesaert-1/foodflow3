@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FoodFlow v3 — How It Works</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green: #16a34a; --green-light: #dcfce7; --green-dark: #166534;
+    --blue: #2563eb; --blue-light: #dbeafe; --blue-dark: #1e3a8a;
+    --orange: #ea580c; --orange-light: #ffedd5; --orange-dark: #7c2d12;
+    --purple: #7c3aed; --purple-light: #f3e8ff; --purple-dark: #4c1d95;
+    --gray: #64748b; --gray-light: #f1f5f9; --border: #e2e8f0;
+    --text: #1e293b; --muted: #64748b;
+  }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: var(--text); line-height: 1.65; font-size: 15px; }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  nav { width: 220px; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; background: white; border-right: 1px solid var(--border); padding: 1.5rem 0; }
+  nav .logo { padding: 0 1.25rem 1.25rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem; }
+  nav .logo span { font-weight: 700; font-size: 1rem; }
+  nav .logo small { display: block; color: var(--muted); font-size: .75rem; margin-top: .1rem; }
+  nav a { display: block; padding: .35rem 1.25rem; font-size: .82rem; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; transition: all .15s; }
+  nav a:hover { color: var(--text); background: var(--gray-light); }
+  nav a.active { color: var(--green); border-left-color: var(--green); background: var(--green-light); font-weight: 500; }
+  nav .nav-group { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: #94a3b8; padding: .8rem 1.25rem .25rem; }
+
+  main { flex: 1; max-width: 780px; padding: 2.5rem 2.5rem 6rem; }
+  section { margin-bottom: 3.5rem; }
+  h1 { font-size: 1.75rem; font-weight: 800; margin-bottom: .25rem; }
+  h2 { font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 2px solid var(--border); color: #0f172a; }
+  h3 { font-size: .95rem; font-weight: 700; margin: 1.5rem 0 .5rem; color: #334155; }
+  p { color: #475569; margin-bottom: .75rem; }
+  strong { color: var(--text); }
+
+  /* Code blocks */
+  .code { background: #0f172a; border-radius: 10px; padding: 1.25rem 1.5rem; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: .8rem; color: #e2e8f0; overflow-x: auto; line-height: 1.9; margin: .75rem 0; }
+  .ck  { color: #93c5fd; }  /* keyword / blue */
+  .cs  { color: #86efac; }  /* string / green */
+  .cf  { color: #fde68a; }  /* function / yellow */
+  .cc  { color: #64748b; }  /* comment / gray */
+  .cp  { color: #d8b4fe; }  /* purple */
+  .co  { color: #fca5a5; }  /* orange/red */
+  .cw  { color: #f8fafc; }  /* white */
+  .ann { color: #94a3b8; font-style: italic; }  /* annotation */
+
+  /* Callout boxes */
+  .box { border-radius: 10px; padding: 1rem 1.25rem; margin: .75rem 0; font-size: .88rem; }
+  .box p { margin-bottom: .4rem; font-size: .88rem; }
+  .box p:last-child { margin-bottom: 0; }
+  .box-blue  { background: var(--blue-light);   border-left: 3px solid var(--blue);   color: #1e3a8a; }
+  .box-green { background: var(--green-light);  border-left: 3px solid var(--green);  color: var(--green-dark); }
+  .box-orange{ background: var(--orange-light); border-left: 3px solid var(--orange); color: var(--orange-dark); }
+  .box-purple{ background: var(--purple-light); border-left: 3px solid var(--purple); color: var(--purple-dark); }
+  .box-gray  { background: var(--gray-light);   border-left: 3px solid #94a3b8;       color: #334155; }
+  .box-title { font-weight: 700; margin-bottom: .4rem !important; }
+
+  /* Analogy callout */
+  .analogy { background: #fefce8; border: 1px solid #fde047; border-radius: 10px; padding: .9rem 1.1rem; margin: .75rem 0; font-size: .88rem; color: #713f12; }
+  .analogy strong { color: #78350f; }
+
+  /* Flow steps */
+  .flow { margin: .75rem 0; }
+  .step { display: flex; gap: .85rem; margin-bottom: .5rem; align-items: flex-start; }
+  .step-num { background: var(--blue); color: white; border-radius: 50%; width: 22px; height: 22px; min-width: 22px; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; margin-top: .15rem; }
+  .step-body { font-size: .9rem; color: #334155; padding-top: .1rem; }
+  .step-body code { background: var(--gray-light); padding: .1rem .35rem; border-radius: 4px; font-size: .8rem; color: var(--purple); font-family: monospace; }
+  .arrow { color: #94a3b8; padding-left: 8px; margin-bottom: .25rem; font-size: 1.1rem; }
+
+  /* Diagram boxes */
+  .diagram { background: #0f172a; border-radius: 10px; padding: 1.25rem 1.5rem; font-family: monospace; font-size: .8rem; color: #e2e8f0; overflow-x: auto; line-height: 2; margin: .75rem 0; }
+  .dg { color: #64748b; }
+  .dy { color: #fde68a; }
+  .dge{ color: #86efac; }
+  .db { color: #93c5fd; }
+  .dp { color: #d8b4fe; }
+  .dr { color: #fca5a5; }
+  .dw { color: #f8fafc; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: .85rem; margin: .75rem 0; }
+  th { background: var(--gray-light); text-align: left; padding: .55rem .85rem; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: .55rem .85rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; color: #475569; }
+  td:first-child { font-family: monospace; color: var(--purple); white-space: nowrap; font-size: .82rem; }
+  tr:last-child td { border-bottom: none; }
+  .card { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin: .75rem 0; }
+
+  /* Badge */
+  .badge { display: inline-block; padding: .15rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600; }
+  .badge-green  { background: var(--green-light);  color: var(--green-dark); }
+  .badge-blue   { background: var(--blue-light);   color: var(--blue-dark); }
+  .badge-orange { background: var(--orange-light); color: var(--orange-dark); }
+  .badge-purple { background: var(--purple-light); color: var(--purple-dark); }
+
+  /* Component tree diagram */
+  .tree { font-family: monospace; font-size: .85rem; line-height: 2; padding: 1rem 1.25rem; background: white; border: 1px solid var(--border); border-radius: 10px; }
+  .t-app    { color: #0f172a; font-weight: 700; }
+  .t-shell  { color: var(--blue); font-weight: 600; }
+  .t-green  { color: var(--green); font-weight: 600; }
+  .t-orange { color: var(--orange); font-weight: 600; }
+  .t-muted  { color: var(--muted); font-size: .78rem; font-style: italic; }
+
+  /* Section divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+
+  /* Subtitle under h1 */
+  .subtitle { color: var(--muted); font-size: .95rem; margin-bottom: 2rem; }
+
+  /* inline code */
+  code { background: var(--gray-light); padding: .1rem .35rem; border-radius: 4px; font-size: .82rem; color: var(--purple); font-family: monospace; }
+
+  /* Two-col grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin: .75rem 0; }
+  .mini-card { background: white; border: 1px solid var(--border); border-radius: 10px; padding: .9rem 1rem; font-size: .85rem; }
+  .mini-card .label { font-weight: 700; font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .3rem; }
+  .mini-card .value { color: #1e293b; }
+
+  @media (max-width: 700px) {
+    nav { display: none; }
+    main { padding: 1.5rem 1.25rem 4rem; }
+    .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── SIDEBAR NAV ─────────────────────────────────────────── -->
+<nav id="sidebar">
+  <div class="logo">
+    <span>🥗 FoodFlow v3</span>
+    <small>How it works</small>
+  </div>
+  <span class="nav-group">Foundations</span>
+  <a href="#what-is-this">What is this app?</a>
+  <a href="#react-basics">What is React?</a>
+  <a href="#boot">How it boots up</a>
+  <span class="nav-group">The App</span>
+  <a href="#component-tree">Component tree</a>
+  <a href="#login">Login flow</a>
+  <a href="#recipes">Recipes &amp; live data</a>
+  <a href="#ai-chat">The AI chat trick</a>
+  <span class="nav-group">Reference</span>
+  <a href="#firebase-db">Database structure</a>
+  <a href="#file-map">File map</a>
+  <a href="#what-to-touch">What to touch</a>
+</nav>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────────── -->
+<main>
+
+  <h1>🥗 FoodFlow v3 — How It Works</h1>
+  <p class="subtitle">A plain-English walkthrough. No prior knowledge assumed.</p>
+
+  <!-- ── WHAT IS THIS APP ──────────────────────────────────── -->
+  <section id="what-is-this">
+    <h2>What is this app?</h2>
+
+    <p>FoodFlow is a meal-planning web app. A user logs in, describes recipes to an AI assistant in plain conversation, and the app saves them. Those recipes then show up in a weekly meal grid. That's the whole thing.</p>
+
+    <p>Here are the four things it does:</p>
+    <div class="grid2">
+      <div class="mini-card">
+        <div class="label">1. Login</div>
+        <div class="value">Email + password, managed by Firebase. Sessions persist across browser reloads.</div>
+      </div>
+      <div class="mini-card">
+        <div class="label">2. Add recipes via AI</div>
+        <div class="value">Chat with an AI assistant that asks questions and extracts a structured recipe.</div>
+      </div>
+      <div class="mini-card">
+        <div class="label">3. Store recipes</div>
+        <div class="value">Each user's recipes are saved to Firebase under their unique user ID.</div>
+      </div>
+      <div class="mini-card">
+        <div class="label">4. Week planner</div>
+        <div class="value">A 7-day grid showing the user's saved recipes. Meal slots are a work-in-progress.</div>
+      </div>
+    </div>
+
+    <h3>The tech stack in one sentence each</h3>
+    <div class="card"><table>
+      <tr><th>Tool</th><th>What it does</th></tr>
+      <tr><td>React</td><td>The framework that builds the UI from reusable pieces called components</td></tr>
+      <tr><td>TypeScript</td><td>JavaScript with type-checking — catches mistakes before you run the code</td></tr>
+      <tr><td>Vite</td><td>The tool that runs the app locally and compiles it for production</td></tr>
+      <tr><td>Tailwind CSS</td><td>Styling by adding class names directly in the code — no separate CSS files</td></tr>
+      <tr><td>Firebase Auth</td><td>Email/password login — handles all the security complexity</td></tr>
+      <tr><td>Firebase Realtime DB</td><td>The database — stores recipes, meal plans, goals per user</td></tr>
+      <tr><td>OpenRouter API</td><td>Connects to Google Gemini (an AI model) — powers the recipe chat</td></tr>
+    </table></div>
+  </section>
+
+  <!-- ── REACT BASICS ──────────────────────────────────────── -->
+  <section id="react-basics">
+    <h2>What is React? (and why does it matter)</h2>
+
+    <p>React is the core framework this app is built on. Before you read the code, you need to understand three things React does. Everything else follows from these.</p>
+
+    <h3>1. Components are just functions that return HTML</h3>
+    <p>In React, every piece of the UI is a <strong>component</strong> — a JavaScript function that describes what to show on screen. Here's the simplest possible example:</p>
+    <div class="code"><span class="ck">function</span> <span class="cf">Greeting</span>() {
+  <span class="ck">return</span> &lt;<span class="dge">p</span>&gt;Hello, world!&lt;/<span class="dge">p</span>&gt;
+}</div>
+    <p>That <code>&lt;p&gt;</code> inside a JS function looks weird — it's called <strong>JSX</strong>. It's not real HTML, it's a shorthand that compiles down to normal JavaScript. React turns it into actual DOM elements in the browser.</p>
+    <div class="analogy"><strong>Analogy:</strong> Think of components like LEGO bricks. Each brick knows how to draw itself. You combine bricks to build the full page. <code>App</code> is the base plate. <code>AppShell</code>, <code>WeekPlanner</code>, <code>RecipeChat</code> are bricks stacked on top of it.</div>
+
+    <h3>2. State — variables that trigger redraws</h3>
+    <p>A normal JavaScript variable changing doesn't update the screen. React's <code>useState</code> hook creates a special variable: when you change it, React automatically re-runs the component function and updates what's shown.</p>
+    <div class="code"><span class="cc">// From App.tsx — the actual code in this project</span>
+<span class="ck">const</span> [user, setUser] = <span class="cf">useState</span>(<span class="ck">null</span>)
+
+<span class="cc">// user  → the current value (null = not logged in)</span>
+<span class="cc">// setUser → the function to change it</span>
+
+<span class="cc">// When you call setUser(someFirebaseUser), React immediately</span>
+<span class="cc">// re-renders App and shows AppShell instead of LoginPage.</span></div>
+    <div class="analogy"><strong>Analogy:</strong> <code>useState</code> is like a sticky note on a whiteboard. When you erase and rewrite the note (<code>setUser</code>), everyone looking at the whiteboard (the UI) sees the new value instantly.</div>
+
+    <h3>3. Effects — code that runs when things change</h3>
+    <p><code>useEffect</code> lets you run code at the right moment — usually when a component first appears on screen, or when a specific value changes.</p>
+    <div class="code"><span class="cc">// From App.tsx — the actual code in this project</span>
+<span class="cf">useEffect</span>(() => {
+  <span class="cc">// This runs once when App first loads.</span>
+  <span class="cc">// It tells Firebase: "call me whenever login state changes".</span>
+  <span class="ck">const</span> unsubscribe = <span class="cf">onAuthChange</span>((firebaseUser) => {
+    <span class="cf">setUser</span>(firebaseUser)    <span class="cc">// updates state → re-renders App</span>
+    <span class="cf">setLoading</span>(<span class="ck">false</span>)
+  })
+
+  <span class="ck">return</span> unsubscribe <span class="cc">// cleanup: stop listening when App unmounts</span>
+}, [])  <span class="cc">// ← the [] means "only run once, on first render"</span></div>
+    <div class="analogy"><strong>Analogy:</strong> <code>useEffect</code> is like saying "when this component appears, do X". The function you return is the cleanup — "when this component disappears, do Y". The empty <code>[]</code> means "only do this once".</div>
+
+    <h3>4. Props — passing data down to child components</h3>
+    <p>Components can receive data from their parent, called <strong>props</strong>. It works like function arguments.</p>
+    <div class="code"><span class="cc">// AppShell.tsx receives the logged-in user as a prop</span>
+<span class="ck">export default function</span> <span class="cf">AppShell</span>({ user }: Props) {
+  <span class="cc">// user.uid  → the unique ID Firebase assigned to this user</span>
+  <span class="cc">// user.email → their email address (shown in the top nav)</span>
+
+  <span class="cc">// AppShell then passes userId down to its children:</span>
+  <span class="ck">return</span> &lt;<span class="dge">WeekPlanner</span> <span class="db">userId</span>={user.uid} /&gt;
+}</div>
+    <p>Data flows in one direction: parent → child. <code>App</code> knows the user. It passes <code>user</code> to <code>AppShell</code>. <code>AppShell</code> extracts <code>user.uid</code> and passes it to <code>WeekPlanner</code> and <code>RecipeChat</code>. Those components use the <code>uid</code> to read/write the right user's data in Firebase.</p>
+  </section>
+
+  <!-- ── BOOT SEQUENCE ─────────────────────────────────────── -->
+  <section id="boot">
+    <h2>How the app boots up</h2>
+
+    <p>When you open the app in a browser, exactly this happens — in order:</p>
+
+    <div class="flow">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">Browser downloads <code>index.html</code>. The whole body is just this: <code>&lt;div id="root"&gt;&lt;/div&gt;</code> — an empty container. Nothing visible yet.</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body"><code>main.tsx</code> runs. It finds that <code>&lt;div id="root"&gt;</code> and tells React: "take control of this div and put <code>&lt;App /&gt;</code> inside it".</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body"><code>App.tsx</code> renders. Its initial state is <code>user = null</code> and <code>loading = true</code>, so it shows a "Loading…" spinner.</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body"><code>App.tsx</code>'s <code>useEffect</code> runs immediately. It calls <code>onAuthChange()</code> from <code>firebase.ts</code>, which asks Firebase: "is there a saved session from a previous visit?"</div>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="step">
+        <div class="step-num">5a</div>
+        <div class="step-body"><strong>No session:</strong> Firebase calls back with <code>null</code>. <code>setUser(null)</code> + <code>setLoading(false)</code>. App re-renders and shows <code>&lt;LoginPage /&gt;</code>.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">5b</div>
+        <div class="step-body"><strong>Session found:</strong> Firebase calls back with the user object. <code>setUser(firebaseUser)</code> + <code>setLoading(false)</code>. App re-renders and shows <code>&lt;AppShell user={user} /&gt;</code> — no login needed.</div>
+      </div>
+    </div>
+
+    <div class="box box-green">
+      <p class="box-title">Key insight</p>
+      <p>You never manually redirect the user. Firebase fires the callback, React re-renders automatically. This is the same mechanism for login, logout, and page refresh — always the same callback.</p>
+    </div>
+
+    <div class="code"><span class="cc">// The full App.tsx — nothing hidden</span>
+<span class="ck">export default function</span> <span class="cf">App</span>() {
+  <span class="ck">const</span> [user, setUser]       = <span class="cf">useState</span>&lt;User | <span class="ck">null</span>&gt;(<span class="ck">null</span>)
+  <span class="ck">const</span> [loading, setLoading] = <span class="cf">useState</span>(<span class="ck">true</span>)
+
+  <span class="cf">useEffect</span>(() => {
+    <span class="ck">const</span> unsubscribe = <span class="cf">onAuthChange</span>((firebaseUser) => {
+      <span class="cf">setUser</span>(firebaseUser)
+      <span class="cf">setLoading</span>(<span class="ck">false</span>)
+    })
+    <span class="ck">return</span> unsubscribe
+  }, [])
+
+  <span class="ck">if</span> (loading) <span class="ck">return</span> &lt;<span class="dge">div</span>&gt;Loading…&lt;/<span class="dge">div</span>&gt;
+  <span class="ck">if</span> (!user)   <span class="ck">return</span> &lt;<span class="dge">LoginPage</span> /&gt;
+  <span class="ck">return</span>         &lt;<span class="dge">AppShell</span> user={user} /&gt;
+}</div>
+  </section>
+
+  <!-- ── COMPONENT TREE ────────────────────────────────────── -->
+  <section id="component-tree">
+    <h2>The component tree</h2>
+
+    <p>This is every component and how they're nested. Each one "owns" certain data and certain responsibilities.</p>
+
+    <div class="tree">
+<span class="t-app">App</span>  <span class="t-muted">← checks if logged in. Shows one of two things:</span>
+│
+├── <span class="t-green">LoginPage</span>  <span class="t-muted">← if NOT logged in. Email + password form.</span>
+│
+└── <span class="t-shell">AppShell</span>  <span class="t-muted">← if logged in. Receives: user</span>
+    │   <span class="t-muted">Owns: which tab is active</span>
+    │   <span class="t-muted">Renders: top nav bar + tab switcher</span>
+    │
+    ├── <span class="t-green">WeekPlanner</span>  <span class="t-muted">← "Week Planner" tab. Receives: userId</span>
+    │       <span class="t-muted">Owns: recipes list (live from Firebase)</span>
+    │       <span class="t-muted">Shows: recipe cards + 7-day grid</span>
+    │
+    └── <span class="t-orange">RecipeChat</span>  <span class="t-muted">← "Add Recipe" tab. Receives: userId</span>
+            <span class="t-muted">Owns: chat message history, input text</span>
+            <span class="t-muted">Calls: AI (openrouter.ts) + Firebase (firebase.ts)</span>
+    </div>
+
+    <div class="box box-blue">
+      <p class="box-title">Only one tab is mounted at a time</p>
+      <p>When you click "Week Planner", <code>AppShell</code> sets <code>tab = 'planner'</code> and renders <code>&lt;WeekPlanner /&gt;</code>. When you switch to "Add Recipe", it sets <code>tab = 'add-recipe'</code> and renders <code>&lt;RecipeChat /&gt;</code> instead. The other one disappears from the DOM.</p>
+    </div>
+
+    <h3>What each component is responsible for</h3>
+    <div class="card"><table>
+      <tr><th>Component</th><th>Owns (its state)</th><th>Talks to</th></tr>
+      <tr><td>App.tsx</td><td>Is the user logged in?</td><td>firebase.ts → onAuthChange()</td></tr>
+      <tr><td>LoginPage.tsx</td><td>Form input values, error messages</td><td>firebase.ts → loginWithEmail(), registerWithEmail()</td></tr>
+      <tr><td>AppShell.tsx</td><td>Which tab is active</td><td>firebase.ts → logout()</td></tr>
+      <tr><td>WeekPlanner.tsx</td><td>The list of recipes</td><td>firebase.ts → subscribeToRecipes()</td></tr>
+      <tr><td>RecipeChat.tsx</td><td>Chat message history, input text</td><td>openrouter.ts → chatAboutRecipes() · firebase.ts → saveRecipe()</td></tr>
+    </table></div>
+  </section>
+
+  <!-- ── LOGIN FLOW ────────────────────────────────────────── -->
+  <section id="login">
+    <h2>Login flow</h2>
+
+    <p>When a user fills in the form in <code>LoginPage.tsx</code> and hits Submit:</p>
+
+    <div class="flow">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><code>LoginPage</code> calls <code>loginWithEmail(email, password)</code> from <code>firebase.ts</code></div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">2</div><div class="step-body">Firebase checks the credentials. If correct, it saves a session cookie in the browser and returns a User object.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">3</div><div class="step-body">Firebase automatically fires the <code>onAuthChange</code> callback that <code>App.tsx</code> set up earlier — passing in the new User object.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">4</div><div class="step-body"><code>App.tsx</code> calls <code>setUser(firebaseUser)</code>. React re-renders <code>App</code>, and now it shows <code>&lt;AppShell /&gt;</code> instead of <code>&lt;LoginPage /&gt;</code>.</div></div>
+    </div>
+
+    <p>Logout works the same way in reverse. <code>AppShell</code> calls <code>logout()</code>, Firebase clears the session, <code>onAuthChange</code> fires with <code>null</code>, <code>setUser(null)</code> runs, and <code>LoginPage</code> shows up again.</p>
+
+    <div class="box box-gray">
+      <p><strong>Registration</strong> works identically — <code>registerWithEmail(email, password)</code> creates the account and immediately fires <code>onAuthChange</code> with the new user. No separate login step needed.</p>
+    </div>
+  </section>
+
+  <!-- ── RECIPES & LIVE DATA ───────────────────────────────── -->
+  <section id="recipes">
+    <h2>Recipes &amp; live data</h2>
+
+    <p>This is the most interesting part of the data architecture. Recipes don't load once — they stay <em>live</em>. Here's what that means.</p>
+
+    <h3>How WeekPlanner loads recipes</h3>
+
+    <div class="flow">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><code>WeekPlanner</code> mounts and its <code>useEffect</code> runs. It calls <code>subscribeToRecipes(userId, setRecipes)</code>.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">2</div><div class="step-body">Inside <code>firebase.ts</code>, this calls <code>onValue(ref(db, 'users/{userId}/recipes'), callback)</code>. This opens a <strong>persistent connection</strong> to Firebase — like a phone call that stays on the line.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">3</div><div class="step-body">Firebase immediately fires the callback with the current recipe list. <code>setRecipes(list)</code> runs → <code>WeekPlanner</code> re-renders → recipes appear on screen.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">4</div><div class="step-body">The connection stays open. Any time data changes in Firebase (a new recipe is added from <code>RecipeChat</code>), Firebase fires the callback again automatically with the updated list.</div></div>
+    </div>
+
+    <div class="analogy"><strong>Why this matters:</strong> You don't need a refresh button. If you add a recipe via the AI chat on one tab, <code>WeekPlanner</code> on the other tab updates instantly — because Firebase called <code>setRecipes</code> again without you asking.</div>
+
+    <div class="code"><span class="cc">// From firebase.ts — the actual subscribe function</span>
+<span class="ck">export const</span> subscribeToRecipes = (
+  userId: <span class="cp">string</span>,
+  callback: (recipes: <span class="cp">Recipe</span>[]) => <span class="ck">void</span>
+) => {
+  <span class="ck">const</span> recipesRef = <span class="cf">ref</span>(db, <span class="cs">`users/${userId}/recipes`</span>)
+
+  <span class="cc">// onValue = "every time this path changes, call me"</span>
+  <span class="ck">return</span> <span class="cf">onValue</span>(recipesRef, (snapshot) => {
+    <span class="ck">if</span> (!snapshot.exists()) <span class="ck">return</span> <span class="cf">callback</span>([])
+    <span class="ck">const</span> raw = snapshot.<span class="cf">val</span>()
+    <span class="ck">const</span> list = Object.<span class="cf">entries</span>(raw).<span class="cf">map</span>(([id, data]) => ({ id, ...data }))
+    <span class="cf">callback</span>(list)
+  })
+  <span class="cc">// The return value is an "unsubscribe" function.</span>
+  <span class="cc">// WeekPlanner calls it on cleanup to close the connection.</span>
+}</div>
+
+    <h3>Saving a new recipe</h3>
+    <div class="code"><span class="cc">// From firebase.ts — saveRecipe</span>
+<span class="ck">export const</span> saveRecipe = <span class="ck">async</span> (userId, recipe) => {
+  <span class="cc">// push() creates a new item under users/{userId}/recipes</span>
+  <span class="cc">// with a Firebase-generated unique key like "-OHgt3kx..."</span>
+  <span class="ck">const</span> recipeRef = <span class="cf">push</span>(<span class="cf">ref</span>(db, <span class="cs">`users/${userId}/recipes`</span>))
+  <span class="ck">await</span> <span class="cf">set</span>(recipeRef, { ...recipe, createdAt: <span class="ck">new</span> <span class="cf">Date</span>().<span class="cf">toISOString</span>() })
+  <span class="ck">return</span> recipeRef.key  <span class="cc">// returns the new ID so we can reference it</span>
+}</div>
+    <p>After <code>saveRecipe</code> runs, Firebase writes to <code>users/{userId}/recipes</code>. This triggers the live listener in <code>WeekPlanner</code> — which fires <code>setRecipes</code> — which causes a re-render. The new recipe card appears instantly without any manual refresh.</p>
+  </section>
+
+  <!-- ── AI CHAT TRICK ─────────────────────────────────────── -->
+  <section id="ai-chat">
+    <h2>The AI chat trick (how recipes are extracted)</h2>
+
+    <p>This is the cleverest part of the app. The AI doesn't have a special "save recipe" button — it embeds the recipe inside its normal text response using a secret tag.</p>
+
+    <h3>How it works</h3>
+
+    <div class="flow">
+      <div class="step"><div class="step-num">1</div><div class="step-body">User types a message. <code>RecipeChat</code> calls <code>chatAboutRecipes()</code> in <code>openrouter.ts</code>, sending the full conversation history + a <strong>system prompt</strong>.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">2</div><div class="step-body">The system prompt tells the AI: <em>"Once you have all the recipe details, put the final recipe at the end of your response like this: <code>RECIPE_JSON: {...}</code>"</em></div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">3</div><div class="step-body">The AI responds conversationally — "Great! I'll set servings to 4. Here's your recipe: 📋 Draft: ..." — and when ready, appends the hidden JSON at the end.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">4</div><div class="step-body"><code>RecipeChat</code> scans the AI's response with a regex: <code>/RECIPE_JSON:\s*(\{.+\})/</code>. If it finds a match, it parses the JSON and calls <code>saveRecipe()</code>.</div></div>
+      <div class="arrow">↓</div>
+      <div class="step"><div class="step-num">5</div><div class="step-body">The <code>RECIPE_JSON: {...}</code> block is stripped out of the displayed message. The user only sees the friendly text, not the raw JSON. A green "✅ Saved" card appears at the bottom of the message.</div></div>
+    </div>
+
+    <div class="code"><span class="cc">// From RecipeChat.tsx — the detection logic</span>
+<span class="ck">const</span> response = <span class="ck">await</span> <span class="cf">chatAboutRecipes</span>(...)
+
+<span class="cc">// Look for RECIPE_JSON: followed by a JSON object</span>
+<span class="ck">const</span> jsonMatch = response.<span class="cf">match</span>(<span class="cs">/RECIPE_JSON:\s*(\{.+\})/s</span>)
+
+<span class="ck">if</span> (jsonMatch) {
+  <span class="ck">const</span> parsed = JSON.<span class="cf">parse</span>(jsonMatch[1])  <span class="cc">// parse the recipe object</span>
+  <span class="ck">const</span> savedId = <span class="ck">await</span> <span class="cf">saveRecipe</span>(userId, parsed)  <span class="cc">// save to Firebase</span>
+  detectedRecipe = { id: savedId, ...parsed }
+}
+
+<span class="cc">// Strip the JSON block before showing the message to the user</span>
+<span class="ck">const</span> displayText = response.<span class="cf">replace</span>(<span class="cs">/RECIPE_JSON:\s*\{.+\}/s</span>, '').<span class="cf">trim</span>()</div>
+
+    <div class="box box-orange">
+      <p class="box-title">The system prompt is what controls the AI</p>
+      <p>In <code>openrouter.ts</code>, the big string at the top of <code>chatAboutRecipes()</code> is the system prompt. It tells the AI who it is, what fields to collect, how to format the output, and when to emit the <code>RECIPE_JSON</code> block. If you want to change how the AI behaves — ask different questions, add more fields, change its tone — edit that string.</p>
+    </div>
+
+    <h3>How the AI "remembers" the conversation</h3>
+    <p>The AI has no memory between calls. Every time the user sends a message, <code>RecipeChat</code> sends the <strong>full conversation history</strong> — every message from the beginning — to the API. The AI reads all of it and responds as if it remembers. This is how all chatbots work.</p>
+
+    <div class="code"><span class="cc">// From openrouter.ts — the messages array that gets sent every time</span>
+<span class="cf">chat</span>([
+  { role: <span class="cs">'system'</span>,    content: systemPrompt },  <span class="cc">// AI instructions</span>
+  { role: <span class="cs">'assistant'</span>, content: <span class="cs">"Hi! What recipe..."</span> },  <span class="cc">// message 1</span>
+  { role: <span class="cs">'user'</span>,      content: <span class="cs">"Pasta carbonara"</span> },    <span class="cc">// message 2</span>
+  { role: <span class="cs">'assistant'</span>, content: <span class="cs">"How many servings?"</span> },  <span class="cc">// message 3</span>
+  { role: <span class="cs">'user'</span>,      content: <span class="cs">"4"</span> },                   <span class="cc">// message 4 (new)</span>
+])</div>
+  </section>
+
+  <!-- ── FIREBASE DB STRUCTURE ─────────────────────────────── -->
+  <section id="firebase-db">
+    <h2>Database structure</h2>
+
+    <p>Firebase Realtime Database stores data as a JSON tree. Each user gets their own subtree, identified by their <code>uid</code> — a unique ID Firebase generates when they register. No user can read another user's data.</p>
+
+    <div class="diagram">
+<span class="dw">users/</span>
+└── <span class="dy">{uid}</span>              <span class="dg">← e.g. "abc123xyz" — Firebase generates this on register</span>
+    │
+    ├── <span class="dge">recipes/</span>
+    │   └── <span class="dy">{recipeId}</span>      <span class="dg">← Firebase generates this key via push()</span>
+    │       ├── name:         "Pasta Carbonara"
+    │       ├── prepTime:     10        <span class="dg">← minutes</span>
+    │       ├── cookTime:     20
+    │       ├── servings:     2
+    │       ├── emoji:        "🍝"
+    │       ├── ingredients:  [ {name: "egg", quantity: "2"}, ... ]
+    │       ├── instructions: [ "Boil pasta", "Fry guanciale", ... ]
+    │       ├── tags:         ["dinner", "italian"]
+    │       └── createdAt:    "2026-03-31T12:00:00Z"
+    │
+    ├── <span class="db">goals/</span>
+    │   ├── healthyEating:  true
+    │   ├── weightLoss:     false
+    │   ├── muscleGain:     true
+    │   └── budgetFriendly: false
+    │
+    └── <span class="dp">mealPlans/</span>
+        └── <span class="dy">"2026-03-31"</span>    <span class="dg">← the Monday of that week</span>
+            ├── monday:    { breakfast: "{recipeId}", lunch: null, dinner: "{recipeId}" }
+            ├── tuesday:   { breakfast: null, lunch: "{recipeId}", dinner: null }
+            └── ...
+    </div>
+
+    <div class="box box-gray">
+      <p><strong>Meal plans store recipe IDs, not the full recipe.</strong> When the week planner grid displays a meal, it will look up the recipe by its ID from the recipes list. This way if a recipe is updated, the meal plan reflects the change automatically.</p>
+    </div>
+  </section>
+
+  <!-- ── FILE MAP ──────────────────────────────────────────── -->
+  <section id="file-map">
+    <h2>File map</h2>
+
+    <div class="diagram">
+<span class="dw">foodflow-v3/</span>
+├── <span class="dy">index.html</span>           <span class="dg">← Browser loads this first. Just &lt;div id="root"&gt; inside.</span>
+├── <span class="dy">package.json</span>         <span class="dg">← All dependencies (react, firebase, etc.) + scripts</span>
+├── <span class="dy">vite.config.ts</span>       <span class="dg">← Tells Vite how to build and serve the project</span>
+├── <span class="dy">tailwind.config.js</span>   <span class="dg">← Tells Tailwind which files to scan for class names</span>
+├── <span class="dy">.env</span>                 <span class="dg">← Your secret API keys. Never committed to git.</span>
+├── <span class="dy">.env.example</span>         <span class="dg">← Template showing which keys are needed (safe to commit)</span>
+│
+└── <span class="db">src/</span>                  <span class="dg">← Everything you write lives here</span>
+    ├── <span class="dge">main.tsx</span>          <span class="dg">← Entry point. Mounts &lt;App /&gt; into index.html's root div.</span>
+    ├── <span class="dge">App.tsx</span>           <span class="dg">← Auth gate. Shows LoginPage or AppShell based on login state.</span>
+    ├── <span class="dge">firebase.ts</span>       <span class="dg">← All Firebase logic: auth + database read/write functions.</span>
+    ├── <span class="dge">openrouter.ts</span>     <span class="dg">← All AI calls. chatAboutRecipes() + generateMealPlan().</span>
+    ├── <span class="dge">types.ts</span>          <span class="dg">← TypeScript types (Recipe, UserGoals, ChatMessage, etc.)</span>
+    ├── <span class="dge">index.css</span>         <span class="dg">← Just the Tailwind base imports. Nothing else.</span>
+    │
+    └── <span class="dp">components/</span>
+        ├── <span class="dp">LoginPage.tsx</span>  <span class="dg">← Email/password login + register form.</span>
+        ├── <span class="dp">AppShell.tsx</span>   <span class="dg">← Nav bar + tab switcher. The outer wrapper after login.</span>
+        ├── <span class="dp">WeekPlanner.tsx</span><span class="dg">← Recipe cards + 7-day meal grid. Subscribes to live recipes.</span>
+        └── <span class="dp">RecipeChat.tsx</span> <span class="dg">← AI chat. Detects RECIPE_JSON in AI responses and saves them.</span>
+    </div>
+
+    <h3>Rule of thumb</h3>
+    <div class="grid2">
+      <div class="box box-green" style="margin:0">Changing how <strong>data is stored or fetched</strong> → edit <code>firebase.ts</code></div>
+      <div class="box box-orange" style="margin:0">Changing <strong>AI behaviour</strong> → edit the system prompt in <code>openrouter.ts</code></div>
+      <div class="box box-blue" style="margin:0">Changing <strong>what the user sees</strong> → edit a file in <code>components/</code></div>
+      <div class="box box-purple" style="margin:0">Adding a <strong>new field to a recipe</strong> → edit <code>types.ts</code> first, then <code>firebase.ts</code> if the DB path changes</div>
+    </div>
+  </section>
+
+  <!-- ── WHAT TO TOUCH ─────────────────────────────────────── -->
+  <section id="what-to-touch">
+    <h2>What to touch when building features</h2>
+
+    <div class="card"><table>
+      <tr><th>I want to…</th><th>Edit these files</th></tr>
+      <tr><td>Change the login UI or add Google login</td><td>LoginPage.tsx + firebase.ts</td></tr>
+      <tr><td>Add a new tab to the app</td><td>AppShell.tsx — add to the Tab type, the tab bar array, and the render block</td></tr>
+      <tr><td>Change how recipe cards look</td><td>WeekPlanner.tsx — the <code>recipes.map()</code> block</td></tr>
+      <tr><td>Change what questions the AI asks</td><td>openrouter.ts → the <code>systemPrompt</code> string in <code>chatAboutRecipes()</code></td></tr>
+      <tr><td>Wire up the AI meal plan generator</td><td>WeekPlanner.tsx — add a button that calls <code>generateMealPlan()</code> (already built in openrouter.ts) and then <code>saveMealPlan()</code></td></tr>
+      <tr><td>Build the Goals feature</td><td>New component Goals.tsx + <code>saveGoals()</code> / <code>getGoals()</code> are already in firebase.ts</td></tr>
+      <tr><td>Add recipe deletion</td><td>WeekPlanner.tsx — add a delete button per card + <code>deleteRecipe()</code> is already in firebase.ts</td></tr>
+      <tr><td>Add a new field to recipes (e.g. calories)</td><td>types.ts → add to the <code>Recipe</code> interface, then update the system prompt in openrouter.ts to collect it</td></tr>
+      <tr><td>Store a new type of data entirely</td><td>types.ts (add the type) + firebase.ts (add read/write functions)</td></tr>
+    </table></div>
+
+    <h3>Features still to build</h3>
+    <div class="box box-gray">
+      <p><strong>Easy:</strong> Recipe deletion button · Goals checkbox panel · Recipe detail expand/collapse</p>
+      <p><strong>Medium:</strong> Wire up "Generate meal plan" button (function exists, needs UI) · Drag recipes into day/meal slots</p>
+      <p><strong>Harder:</strong> Progress/habits tab with charts · Nutritional info per recipe</p>
+    </div>
+  </section>
+
+  <p style="text-align:center; color:#94a3b8; font-size:.8rem; margin-top:3rem">FoodFlow v3 · Updated 2026-03-31</p>
+
+</main>
+</div>
+
+<script>
+  // Highlight nav link for the section currently in view
+  const sections = document.querySelectorAll('section[id]')
+  const links = document.querySelectorAll('nav a')
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        links.forEach(l => l.classList.remove('active'))
+        const active = document.querySelector(`nav a[href="#${entry.target.id}"]`)
+        if (active) active.classList.add('active')
+      }
+    })
+  }, { rootMargin: '-20% 0px -70% 0px' })
+
+  sections.forEach(s => observer.observe(s))
+</script>
+</body>
+</html>
